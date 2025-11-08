@@ -2,57 +2,70 @@ import pm4py
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Load the log
+# --- Load the log ---
 log = pm4py.read_xes("bpi-chall.xes")
 
-if isinstance(log, pd.DataFrame):
-    df = log
-else:
+if not isinstance(log, pd.DataFrame):
     df = pm4py.convert_to_dataframe(log)
+else:
+    df = log.copy()
 
-# (a) Number of cases
-num_cases = len(log)
-print(f"Number of cases: {num_cases}")
-
-# (b) Number of process variants
-from pm4py.algo.filtering.log.variants import variants_filter
-variants = pm4py.statistics.variants.log.get.get_variants(log)
-print(f"Number of process variants: {len(variants)}")
-
-# (c) Number of events / activities / resources
-num_events = len(df)
-unique_activities = df["concept:name"].nunique()
-unique_resources = df["org:resource"].nunique() if "org:resource" in df.columns else 0
-
-print(f"Number of events: {num_events}")
-print(f"Number of unique activities: {unique_activities}")
-print(f"Number of unique resources: {unique_resources}")
-
-print(f"Number of events: {num_events}")
-print(f"Number of unique activities: {unique_activities}")
-print(f"Number of unique resources: {unique_resources}")
-
-# --- (d) Case durations ---
-# Convert to pandas dataframe to easily compute durations
-df = pm4py.convert_to_dataframe(log)
-
-# Ensure timestamps are parsed correctly
 df["time:timestamp"] = pd.to_datetime(df["time:timestamp"])
 
-# Compute start and end times per case
+# --- (1) Number of cases ---
+num_cases = df["case:concept:name"].nunique()
+
+# --- (2) Number of events ---
+num_events = len(df)
+
+# --- (3) Number of process variants ---
+variants = pm4py.statistics.variants.log.get.get_variants(log)
+num_variants = len(variants)
+
+# --- (4) Number of case and event labels ---
+num_case_labels = df["case:concept:name"].nunique()
+num_event_labels = df["concept:name"].nunique()
+
+# --- (5) Case length (number of events per case) ---
+case_lengths = df.groupby("case:concept:name").size()
+mean_case_length = case_lengths.mean()
+std_case_length = case_lengths.std()
+
+# --- (6) Case duration statistics ---
 case_durations = (
     df.groupby("case:concept:name")["time:timestamp"]
     .agg(["min", "max"])
     .assign(duration=lambda x: (x["max"] - x["min"]).dt.total_seconds())
 )
+mean_case_duration = case_durations["duration"].mean()
+std_case_duration = case_durations["duration"].std()
 
-avg_duration = case_durations["duration"].mean()
-std_duration = case_durations["duration"].std()
+# --- (7) Number of categorical event attributes ---
+categorical_event_attrs = [
+    col for col in df.columns
+    if not pd.api.types.is_numeric_dtype(df[col]) and col not in ["time:timestamp"]
+]
+num_categorical_event_attrs = len(categorical_event_attrs)
 
-print(f"Average case duration: {avg_duration:.2f} seconds")
-print(f"Std dev of case duration: {std_duration:.2f} seconds")
+# --- (8) Additional simple metrics ---
+num_unique_resources = df["org:resource"].nunique() if "org:resource" in df.columns else 0
+num_total_event_attrs = len(df.columns)
 
-# --- Plot distribution to see long vs short cases ---
+print("=== Process Log Metrics ===")
+print(f"Number of cases: {num_cases}")
+print(f"Number of events: {num_events}")
+print(f"Number of process variants: {num_variants}")
+print(f"Number of case labels: {num_case_labels}")
+print(f"Number of event labels: {num_event_labels}")
+print(f"Mean case length: {mean_case_length:.2f}")
+print(f"Std dev of case length: {std_case_length:.2f}")
+print(f"Mean case duration (s): {mean_case_duration:.2f}")
+print(f"Std dev of case duration (s): {std_case_duration:.2f}")
+print(f"Number of categorical event attributes: {num_categorical_event_attrs}")
+print(f"Number of unique resources: {num_unique_resources}")
+print(f"Total number of event attributes: {num_total_event_attrs}")
+
+# --- (Optional) Plot case duration distribution ---
 plt.hist(case_durations["duration"], bins=50)
 plt.title("Distribution of Case Durations (seconds)")
 plt.xlabel("Duration (s)")
