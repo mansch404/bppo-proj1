@@ -4,3 +4,5 @@
 - Number of places
 
 - Include in the report what the process is about
+- Don't just use inductive miner+
+- Provide README

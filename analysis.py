@@ -65,7 +65,6 @@ print(f"Number of categorical event attributes: {num_categorical_event_attrs}")
 print(f"Number of unique resources: {num_unique_resources}")
 print(f"Total number of event attributes: {num_total_event_attrs}")
 
-# --- (Optional) Plot case duration distribution ---
 plt.hist(case_durations["duration"], bins=50)
 plt.title("Distribution of Case Durations (seconds)")
 plt.xlabel("Duration (s)")
