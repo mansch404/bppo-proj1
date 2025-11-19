@@ -2,7 +2,6 @@ import pm4py
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# --- Load the log ---
 log = pm4py.read_xes("bpi-chall.xes")
 
 if not isinstance(log, pd.DataFrame):
